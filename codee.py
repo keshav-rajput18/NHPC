@@ -1,43 +1,42 @@
 from langchain_community.document_loaders import DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-DATA_PATH = "data/books"
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
+DATA_PATH = "data/books"
+CHROMA_PATH = "chroma_db"
+
+# Load documents
 def load_documents():
-    loader = DirectoryLoader(DATA_PATH, glob="*.md")
+    loader = DirectoryLoader(DATA_PATH, glob="*.md", show_progress=True)
     documents = loader.load()
     return documents
 
-# Load documents first
 documents = load_documents()
 
-# Create text splitter to generate chunks
+# Split documents into chunks
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000,
     chunk_overlap=500,
     length_function=len,
-    add_start_index=True,
+    add_start_index=True
 )
 
-# Split documents into chunks
 chunks = text_splitter.split_documents(documents)
 
-# # Print the first chunk to verify
-# print(chunks[0] if chunks else "No chunks generated.")
-
-
-
-#code to use Hugging Face embeddings
-
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
-
-CHROMA_PATH = "chroma_db"
-
-# Use a local embedding model
-embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
-# Create a new DB from the documents
-db = Chroma.from_documents(
-    chunks, embedding_model, persist_directory=CHROMA_PATH
+# Initialize embeddings
+embedding_model = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    model_kwargs={'device': 'cpu'}
 )
+
+# Initialize ChromaDB
+db = Chroma(
+    collection_name="my_collection",
+    embedding_function=embedding_model,
+    persist_directory=CHROMA_PATH
+)
+
+db.add_documents(chunks)  # Add documents
+db.persist()  # Save to disk
