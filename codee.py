@@ -1,10 +1,7 @@
 from langchain_community.document_loaders import DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
-
-
 
 DATA_PATH = "data/books"
 CHROMA_PATH = "chroma_db"
@@ -28,7 +25,7 @@ text_splitter = RecursiveCharacterTextSplitter(
 chunks = text_splitter.split_documents(documents)
 
 # Initialize embeddings
-embedding_model = HuggingFaceEmbeddings(
+embedding_function = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2",
     model_kwargs={'device': 'cpu'}
 )
@@ -36,15 +33,14 @@ embedding_model = HuggingFaceEmbeddings(
 # Initialize ChromaDB
 db = Chroma(
     collection_name="my_collection",
-    embedding_function=embedding_model,
+    embedding_function=embedding_function,
     persist_directory=CHROMA_PATH
 )
 
-db.add_documents(chunks)  # Add documents
+# Add document chunks to the database
+db.add_documents(chunks)
 db.persist()  # Save to disk
 
-
-# Prepare the DB
-embedding_function = OpenAIEmbeddings(
-    db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
-)
+# Verify if documents are stored correctly
+db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
+print("Number of documents in DB:", db._collection.count())
