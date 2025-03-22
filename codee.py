@@ -4,6 +4,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
+
+
 DATA_PATH = "data/books"
 CHROMA_PATH = "chroma_db"
 
@@ -40,3 +42,9 @@ db = Chroma(
 
 db.add_documents(chunks)  # Add documents
 db.persist()  # Save to disk
+
+
+# Prepare the DB
+embedding_function = OpenAIEmbeddings(
+    db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
+)
