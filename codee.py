@@ -1,7 +1,9 @@
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.document_loaders import DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_ollama import OllamaLLM  # Corrected to use OllamaLLM
 
 # Define paths
 DATA_PATH = "data/books"
@@ -53,32 +55,31 @@ def process_query(query_text):
     # Perform search in the Chroma database
     results = db.similarity_search(query_text, k=5)  # Get top 5 results
 
-    # Format and return the results
-    return [doc.page_content for doc in results]
+    # Prepare context from search results
+    context_text = "\n\n---\n\n".join([doc.page_content for doc in results])
+
+    # Define the prompt template
+    PROMPT_TEMPLATE = """
+    Answer the question based only on the following context:
+
+    {context}
+
+    ---
+
+    Answer the question based on the above context: {question}
+    """
+
+    # Create the prompt
+    prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+    prompt = prompt_template.format(context=context_text, question=query_text)
+
+    # Use DeepSeek R1 as the LLM
+    model = OllamaLLM(model="deepseek-r1")  # Updated to OllamaLLM
+    response_text = model.invoke(prompt)
+
+    return response_text
 
 # Example usage
 query_text = input("Enter your query: ")
-results = process_query(query_text)
-print("\nTop 5 matching results:")
-for idx, res in enumerate(results, 1):
-    print(f"{idx}. {res}\n")
-
-
-
-PROMPT_TEMPLATE = """
-Answer the question based only on the following context:
-
-{context}
-
----
-
-Answer the question based on the above context : {query}
-
-"""
-
-context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
-prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-prompt = prompt_template.format(context=context=context_text, question=query_text)
-
-model = ChatOpenAI()
-response_text = model.predict(prompt)
+response = process_query(query_text)
+print("\nAI Response:\n", response)
